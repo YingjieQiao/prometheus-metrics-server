@@ -55,10 +55,10 @@ func TestLoadTest(t *testing.T) {
 
 	log.Printf("Starting load test with %d QPS\n", rateLimit)
 
-	for i := 0; i < 100; i++ { // Run for 100 iterations
+	for i := 0; i < 100; i++ {
 		wg.Add(1)
 		go sendRequest(client, wg)
-		<-ticker.C // Wait for the next tick
+		<-ticker.C
 	}
 
 	wg.Wait()
