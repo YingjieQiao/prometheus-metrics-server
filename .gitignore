@@ -5,6 +5,8 @@
 **/prometheus.yml
 **/data
 **/grafana/*
+!grafana/grafana.db
+!grafana/grafana.json
 .docker/grafana/*
 !.docker/grafana/grafana.db
 **/.env
