@@ -13,28 +13,29 @@ import (
 )
 
 var (
-	types   = []string{"emai", "deactivation", "activation", "transaction", "customer_renew", "order_processed"}
+	types   = []string{"free", "standard", "advanced", "pro"}
+	versions = []string{"v1", "v2", "v3"}
 	workers = 0
 
 	// curl "http://localhost:9090/api/v1/query?query=worker_jobs_processed_total"
-	totalCounterVec = prometheus.NewCounterVec(
+	processedCounterVec = prometheus.NewCounterVec(
 		prometheus.CounterOpts{
 			Namespace: "worker",
 			Subsystem: "jobs",
 			Name:      "processed_total",
 			Help:      "Total number of jobs processed by the workers",
 		},
-		[]string{"worker_id", "type"},
+		[]string{"worker_id", "type", "version"},
 	)
 
-	inflightCounterVec = prometheus.NewGaugeVec(
+	pendingCounterVec = prometheus.NewGaugeVec(
 		prometheus.GaugeOpts{
 			Namespace: "worker",
 			Subsystem: "jobs",
-			Name:      "inflight",
-			Help:      "Number of jobs inflight",
+			Name:      "pending",
+			Help:      "Number of pending jobs",
 		},
-		[]string{"type"},
+		[]string{"type", "version"},
 	)
 
 	processingTimeVec = prometheus.NewHistogramVec(
@@ -44,7 +45,7 @@ var (
 			Name:      "process_time_seconds",
 			Help:      "Amount of time spent processing jobs",
 		},
-		[]string{"worker_id", "type"},
+		[]string{"worker_id", "type", "version"},
 	)
 )
 
@@ -56,13 +57,17 @@ func getType() string {
 	return types[rand.Int()%len(types)]
 }
 
+func getVersion() string {
+	return versions[rand.Int()%len(versions)]
+}
+
 func main() {
 	flag.Parse()
 
 	// register with the prometheus collector
 	prometheus.MustRegister(
-		totalCounterVec,
-		inflightCounterVec,
+		processedCounterVec,
+		pendingCounterVec,
 		processingTimeVec,
 	)
 
@@ -83,6 +88,7 @@ func main() {
 
 type Job struct {
 	Type  string
+	Version string
 	Sleep time.Duration
 }
 
@@ -90,6 +96,7 @@ type Job struct {
 func makeJob() *Job {
 	return &Job{
 		Type:  getType(),
+		Version: getVersion(),
 		Sleep: time.Duration(rand.Int()%100+10) * time.Millisecond,
 	}
 }
@@ -116,8 +123,8 @@ func createJobs(jobs chan<- *Job) {
 	for {
 		// create a random job
 		job := makeJob()
-		// track the job in the inflight tracker
-		inflightCounterVec.WithLabelValues(job.Type).Inc()
+		// track the job in the pending tracker
+		pendingCounterVec.WithLabelValues(job.Type, job.Version).Inc()
 		// send the job down the channel
 		jobs <- job
 		// don't pile up too quickly
@@ -137,11 +144,11 @@ func startWorker(workerID int, jobs <-chan *Job) {
 			time.Sleep(job.Sleep)
 			log.Printf("[%d][%s] Processed job in %0.3f seconds", workerID, job.Type, time.Now().Sub(startTime).Seconds())
 			// track the total number of jobs processed by the worker
-			totalCounterVec.WithLabelValues(strconv.FormatInt(int64(workerID), 10), job.Type).Inc()
-			// decrement the inflight tracker
-			inflightCounterVec.WithLabelValues(job.Type).Dec()
+			processedCounterVec.WithLabelValues(strconv.FormatInt(int64(workerID), 10), job.Type, job.Version).Inc()
+			// decrement the pending tracker
+			pendingCounterVec.WithLabelValues(job.Type, job.Version).Dec()
 
-			processingTimeVec.WithLabelValues(strconv.FormatInt(int64(workerID), 10), job.Type).Observe(time.Now().Sub(startTime).Seconds())
+			processingTimeVec.WithLabelValues(strconv.FormatInt(int64(workerID), 10), job.Type, job.Version).Observe(time.Now().Sub(startTime).Seconds())
 		}
 	}
 }
