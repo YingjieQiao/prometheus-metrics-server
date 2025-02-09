@@ -5,7 +5,7 @@ global:
 scrape_configs:
   - job_name: 'prod'
     static_configs:
-      - targets: ['localhost:1123']
+      - targets: ['golang_app:1123']
 
 remote_write:
   - url: ""

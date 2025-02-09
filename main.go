@@ -16,6 +16,7 @@ var (
 	types   = []string{"emai", "deactivation", "activation", "transaction", "customer_renew", "order_processed"}
 	workers = 0
 
+	// curl "http://localhost:9090/api/v1/query?query=worker_jobs_processed_total"
 	totalCounterVec = prometheus.NewCounterVec(
 		prometheus.CounterOpts{
 			Namespace: "worker",

@@ -1,0 +1,9 @@
+**/.docker/grafana/*
+**/.DS_Store
+./job_processor/data
+**/prometheus
+**/prometheus.yml
+**/data
+**/grafana/*
+.docker/grafana/*
+!.docker/grafana/grafana.db
