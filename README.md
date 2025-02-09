@@ -1,8 +1,6 @@
 # prometheus-metrics-server
 
-configure local grafana dashboard 
-
-HTTP server
+A simple golang server that emits custom metrics to remote hosted Prometheus with locally hosted grafana dashboard. 
 
 # Next Steps
 

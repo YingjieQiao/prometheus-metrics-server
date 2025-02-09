@@ -7,3 +7,4 @@
 **/grafana/*
 .docker/grafana/*
 !.docker/grafana/grafana.db
+**/.env
